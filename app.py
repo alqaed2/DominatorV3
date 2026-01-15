@@ -31,7 +31,7 @@ if GOOGLE_API_KEY:
         # الاتصال بمكتبة Google GenAI الحديثة
         client = genai.Client(api_key=GOOGLE_API_KEY)
         AI_ACTIVE = True
-        logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI FLASH.")
+        logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI FLASH LATEST.")
     except Exception as e:
         logger.error(f"!! [WARNING] AI Connection Failed: {e}")
 else:
@@ -40,7 +40,7 @@ else:
 # --- THE STRATEGIC INTELLIGENCE CORE (SIC) ---
 class StrategicIntelligenceCore:
     def __init__(self):
-        self.version = "13.4 (Flash-Turbo)"
+        self.version = "13.5 (Flash-Latest-Force)"
 
     def _generate_fallback_content(self, niche, mode):
         """خطة الطوارئ عند فشل الاتصال أو غياب المفتاح"""
@@ -92,12 +92,12 @@ class StrategicIntelligenceCore:
     def generate_warhead(self, niche, mode):
         if AI_ACTIVE and client:
             try:
-                logger.info(f">> [AI] Thinking about {niche} using Gemini Flash...")
+                logger.info(f">> [AI] Thinking about {niche} using Gemini Flash Latest...")
                 sys_inst, user_msg = self._build_expert_prompt(niche, mode)
                 
-                # استخدام الموديل المطلوب بدقة
+                # استخدام الموديل المطلوب بدقة (FORCE MODEL)
                 response = client.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-flash-latest',
                     config=types.GenerateContentConfig(
                         system_instruction=sys_inst,
                         response_mime_type='application/json',
@@ -122,15 +122,15 @@ sic_engine = StrategicIntelligenceCore()
 @app.route('/')
 def system_root():
     status_color = "#0f0" if AI_ACTIVE else "#f00"
-    status_text = "ONLINE (GEMINI FLASH ACTIVE)" if AI_ACTIVE else "OFFLINE (KEY MISSING)"
+    status_text = "ONLINE (GEMINI FLASH LATEST ACTIVE)" if AI_ACTIVE else "OFFLINE (KEY MISSING)"
     
     return render_template_string(f"""
     <!DOCTYPE html>
     <body style="background:#000;color:{status_color};font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
         <div style="border:1px solid #333;padding:40px;text-align:center;box-shadow:0 0 20px {status_color}40;">
-            <h1>AI DOMINATOR v13.4</h1>
+            <h1>AI DOMINATOR v13.5</h1>
             <p>STATUS: {status_text}</p>
-            <p>ENGINE: GEMINI 1.5 FLASH</p>
+            <p>ENGINE: GEMINI FLASH LATEST</p>
             <p style="color:#666;font-size:0.8em;margin-top:20px;">READY FOR TACTICAL COMMANDS</p>
         </div>
     </body>
@@ -166,4 +166,3 @@ def execute_order():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
