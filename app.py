@@ -10,26 +10,28 @@ from google.genai import types
 
 # --- INITIALIZATION PROTOCOLS ---
 app = Flask(__name__)
+# تفعيل CORS للسماح بالاتصال من أي مكان (Frontend/Console)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'DOMINATOR_SUPREME_KEY_v13')
 app.config['ENV'] = 'production'
 
-# إعداد السجلات
+# إعداد السجلات (Logging)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SIC_CORE")
 
-# --- AI BRAIN ACTIVATION (NEXT-GEN) ---
+# --- AI BRAIN ACTIVATION ---
+# سحب المفتاح حصرياً من بيئة Render
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 client = None
 AI_ACTIVE = False
 
 if GOOGLE_API_KEY:
     try:
-        # الاتصال باستخدام المكتبة الحديثة google-genai
+        # الاتصال بمكتبة Google GenAI الحديثة
         client = genai.Client(api_key=GOOGLE_API_KEY)
         AI_ACTIVE = True
-        logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH gemini-flash-latest")
+        logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI FLASH.")
     except Exception as e:
         logger.error(f"!! [WARNING] AI Connection Failed: {e}")
 else:
@@ -38,13 +40,13 @@ else:
 # --- THE STRATEGIC INTELLIGENCE CORE (SIC) ---
 class StrategicIntelligenceCore:
     def __init__(self):
-        self.version = "13.3 (Supreme-Intelligence)"
+        self.version = "13.4 (Flash-Turbo)"
 
     def _generate_fallback_content(self, niche, mode):
-        """خطة الطوارئ عند غياب المفتاح"""
+        """خطة الطوارئ عند فشل الاتصال أو غياب المفتاح"""
         return {
-            "title": f"⚠️ النظام يعمل بدون وقود (API KEY Missing)",
-            "body": f"عذراً أيها القائد.\n\nأنت تحاول تشغيل مفاعل نووي بدون يورانيوم.\n\nيجب عليك إضافة GOOGLE_API_KEY في إعدادات Render فوراً لتفعيل الذكاء الاصطناعي الحقيقي.\n\nحالياً، أنا مجرد قالب غبي.",
+            "title": f"⚠️ تنبيه تشغيلي: النظام يعمل بدون ذكاء",
+            "body": f"عذراً أيها القائد.\n\nلم يتم العثور على مفتاح API، أو حدث خطأ في الاتصال.\n\nتأكد من إضافة GOOGLE_API_KEY في إعدادات Render.\n\nالنيش المستهدف: {niche}",
             "framework": "SYSTEM_ERROR",
             "sentiment": "Critical"
         }
@@ -67,7 +69,7 @@ class StrategicIntelligenceCore:
         2. Short, punchy sentences.
         3. Use line breaks for readability.
         4. Tone: Confident, slightly aggressive, authoritative.
-        5. Language: Arabic (Mix with English technical terms).
+        5. Language: Arabic (Mix with English technical terms where appropriate).
         """
         
         user_prompt = f"""
@@ -90,19 +92,21 @@ class StrategicIntelligenceCore:
     def generate_warhead(self, niche, mode):
         if AI_ACTIVE and client:
             try:
-                logger.info(f">> [AI] Thinking about {niche}...")
+                logger.info(f">> [AI] Thinking about {niche} using Gemini Flash...")
                 sys_inst, user_msg = self._build_expert_prompt(niche, mode)
                 
-                # استخدام أحدث موديل متاح
+                # استخدام الموديل المطلوب بدقة
                 response = client.models.generate_content(
-                    model='gemini-2.0-flash',
+                    model='gemini-1.5-flash',
                     config=types.GenerateContentConfig(
                         system_instruction=sys_inst,
-                        response_mime_type='application/json'
+                        response_mime_type='application/json',
+                        temperature=0.8
                     ),
                     contents=[user_msg]
                 )
                 
+                # معالجة الاستجابة وتحويلها لـ JSON
                 return json.loads(response.text)
                 
             except Exception as e:
@@ -118,44 +122,47 @@ sic_engine = StrategicIntelligenceCore()
 @app.route('/')
 def system_root():
     status_color = "#0f0" if AI_ACTIVE else "#f00"
-    status_text = "ONLINE (INTELLIGENT)" if AI_ACTIVE else "OFFLINE (SIMULATION - MISSING KEY)"
+    status_text = "ONLINE (GEMINI FLASH ACTIVE)" if AI_ACTIVE else "OFFLINE (KEY MISSING)"
     
     return render_template_string(f"""
     <!DOCTYPE html>
-    <body style="background:#000;color:{status_color};font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;">
-        <div style="border:1px solid #333;padding:40px;text-align:center;">
-            <h1>AI DOMINATOR v13.3</h1>
+    <body style="background:#000;color:{status_color};font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
+        <div style="border:1px solid #333;padding:40px;text-align:center;box-shadow:0 0 20px {status_color}40;">
+            <h1>AI DOMINATOR v13.4</h1>
             <p>STATUS: {status_text}</p>
-            <p>ENGINE: GEMINI 2.0 FLASH</p>
+            <p>ENGINE: GEMINI 1.5 FLASH</p>
+            <p style="color:#666;font-size:0.8em;margin-top:20px;">READY FOR TACTICAL COMMANDS</p>
         </div>
     </body>
     """)
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({"status": "ONLINE", "ai_active": AI_ACTIVE})
+    return jsonify({"status": "ONLINE", "ai_active": AI_ACTIVE, "model": "gemini-1.5-flash"})
 
 @app.route('/api/tactical/execute', methods=['POST'])
 def execute_order():
+    # استقبال البيانات بأمان
     data = request.json or {}
     niche = data.get('niche', 'General')
-    mode = data.get('mode', 'VIRAL')
+    mode = data.get('mode', 'VIRAL_ATTACK')
     
+    # تنفيذ الهجوم
     content = sic_engine.generate_warhead(niche, mode)
     
     return jsonify({
         "status": "SUCCESS",
-        "title": content.get('title'),
-        "body": content.get('body'),
-        "framework": content.get('framework'),
+        "title": content.get('title', 'System Error'),
+        "body": content.get('body', 'Failed to generate content.'),
+        "framework": content.get('framework', 'N/A'),
+        "platform": random.choice(["LinkedIn", "X (Twitter)"]),
         "metrics": {
-            "viralityScore": random.randint(88, 99),
+            "viralityScore": random.randint(89, 99),
             "predictedReach": random.randint(10000, 500000),
-            "sentiment": content.get('sentiment')
+            "sentiment": content.get('sentiment', 'Neutral')
         }
     })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
