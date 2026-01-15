@@ -29,7 +29,7 @@ if GOOGLE_API_KEY:
         # الاتصال باستخدام المكتبة الحديثة google-genai
         client = genai.Client(api_key=GOOGLE_API_KEY)
         AI_ACTIVE = True
-        logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI 2.0.")
+        logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH gemini-flash-latest")
     except Exception as e:
         logger.error(f"!! [WARNING] AI Connection Failed: {e}")
 else:
@@ -158,3 +158,4 @@ def execute_order():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
