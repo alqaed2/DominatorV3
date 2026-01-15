@@ -21,32 +21,32 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SIC_CORE")
 
 # --- AI BRAIN ACTIVATION ---
-# سحب المفتاح حصرياً من بيئة Render
-GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+# سحب المفتاح حصرياً من بيئة Render باستخدام الاسم الصحيح (GEMINI_API_KEY)
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 client = None
 AI_ACTIVE = False
 
-if GOOGLE_API_KEY:
+if GEMINI_API_KEY:
     try:
         # الاتصال بمكتبة Google GenAI الحديثة
-        client = genai.Client(api_key=GOOGLE_API_KEY)
+        client = genai.Client(api_key=GEMINI_API_KEY)
         AI_ACTIVE = True
         logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI FLASH LATEST.")
     except Exception as e:
         logger.error(f"!! [WARNING] AI Connection Failed: {e}")
 else:
-    logger.warning("!! [CRITICAL] NO GOOGLE_API_KEY FOUND. SYSTEM RUNNING IN SIMULATION MODE.")
+    logger.warning("!! [CRITICAL] NO GEMINI_API_KEY FOUND. SYSTEM RUNNING IN SIMULATION MODE.")
 
 # --- THE STRATEGIC INTELLIGENCE CORE (SIC) ---
 class StrategicIntelligenceCore:
     def __init__(self):
-        self.version = "13.5 (Flash-Latest-Force)"
+        self.version = "13.6 (Flash-Latest-Force)"
 
     def _generate_fallback_content(self, niche, mode):
         """خطة الطوارئ عند فشل الاتصال أو غياب المفتاح"""
         return {
             "title": f"⚠️ تنبيه تشغيلي: النظام يعمل بدون ذكاء",
-            "body": f"عذراً أيها القائد.\n\nلم يتم العثور على مفتاح API، أو حدث خطأ في الاتصال.\n\nتأكد من إضافة GOOGLE_API_KEY في إعدادات Render.\n\nالنيش المستهدف: {niche}",
+            "body": f"عذراً أيها القائد.\n\nلم يتم العثور على مفتاح API، أو حدث خطأ في الاتصال.\n\nتأكد من أن المتغير GEMINI_API_KEY مضاف بشكل صحيح في Render.\n\nالنيش المستهدف: {niche}",
             "framework": "SYSTEM_ERROR",
             "sentiment": "Critical"
         }
@@ -128,9 +128,10 @@ def system_root():
     <!DOCTYPE html>
     <body style="background:#000;color:{status_color};font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
         <div style="border:1px solid #333;padding:40px;text-align:center;box-shadow:0 0 20px {status_color}40;">
-            <h1>AI DOMINATOR v13.5</h1>
+            <h1>AI DOMINATOR v13.6</h1>
             <p>STATUS: {status_text}</p>
             <p>ENGINE: GEMINI FLASH LATEST</p>
+            <p>KEY SOURCE: GEMINI_API_KEY</p>
             <p style="color:#666;font-size:0.8em;margin-top:20px;">READY FOR TACTICAL COMMANDS</p>
         </div>
     </body>
