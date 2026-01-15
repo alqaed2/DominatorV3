@@ -2,9 +2,11 @@ import os
 import random
 import time
 import json
+import logging
 from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 # --- INITIALIZATION PROTOCOLS ---
 app = Flask(__name__)
@@ -13,150 +15,121 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'DOMINATOR_SUPREME_KEY_v13')
 app.config['ENV'] = 'production'
 
-# --- AI BRAIN ACTIVATION ---
-# محاولة تهيئة اتصال Gemini
+# إعداد السجلات
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("SIC_CORE")
+
+# --- AI BRAIN ACTIVATION (NEXT-GEN) ---
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+client = None
 AI_ACTIVE = False
 
 if GOOGLE_API_KEY:
     try:
-        genai.configure(api_key=GOOGLE_API_KEY)
-        # نستخدم موديل سريع وذكي
-        model = genai.GenerativeModel('gemini-flash-latest')
+        # الاتصال باستخدام المكتبة الحديثة google-genai
+        client = genai.Client(api_key=GOOGLE_API_KEY)
         AI_ACTIVE = True
-        print(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI AI.")
+        logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI 2.0.")
     except Exception as e:
-        print(f"!! [WARNING] AI Connection Failed: {e}")
+        logger.error(f"!! [WARNING] AI Connection Failed: {e}")
 else:
-    print("!! [WARNING] NO GOOGLE_API_KEY FOUND. SYSTEM RUNNING IN SIMULATION MODE.")
+    logger.warning("!! [CRITICAL] NO GOOGLE_API_KEY FOUND. SYSTEM RUNNING IN SIMULATION MODE.")
 
 # --- THE STRATEGIC INTELLIGENCE CORE (SIC) ---
 class StrategicIntelligenceCore:
     def __init__(self):
-        self.version = "13.2 (True-AGI)"
-        self.status = "OPERATIONAL"
+        self.version = "13.3 (Supreme-Intelligence)"
 
     def _generate_fallback_content(self, niche, mode):
-        """
-        خطة الطوارئ: تعمل فقط في حال فشل الاتصال بالذكاء الاصطناعي.
-        """
-        if mode == 'VIRAL_ATTACK':
-            return {
-                "title": f"لماذا يخسر الجميع في {niche}؟",
-                "body": f"الحقيقة أن 99% من العاملين في مجال {niche} يكررون نفس الأخطاء.\n\nالسر ليس في العمل بجد، بل في العمل بذكاء.\n\n#{niche.replace(' ', '')}",
-                "framework": "Contrarian (Fallback)",
-                "sentiment": "Critical"
-            }
-        else:
-            return {
-                "title": f"استراتيجية {niche} للمحترفين",
-                "body": f"إليك الخطوات الثلاث التي استخدمتها لمضاعفة النتائج في {niche}.\n\n1. الاستراتيجية.\n2. التنفيذ.\n3. التحليل.\n\n#{niche.replace(' ', '')}",
-                "framework": "Educational (Fallback)",
-                "sentiment": "Neutral"
-            }
+        """خطة الطوارئ عند غياب المفتاح"""
+        return {
+            "title": f"⚠️ النظام يعمل بدون وقود (API KEY Missing)",
+            "body": f"عذراً أيها القائد.\n\nأنت تحاول تشغيل مفاعل نووي بدون يورانيوم.\n\nيجب عليك إضافة GOOGLE_API_KEY في إعدادات Render فوراً لتفعيل الذكاء الاصطناعي الحقيقي.\n\nحالياً، أنا مجرد قالب غبي.",
+            "framework": "SYSTEM_ERROR",
+            "sentiment": "Critical"
+        }
 
     def _build_expert_prompt(self, niche, mode):
+        """هندسة الأوامر المتقدمة"""
+        angle = random.choice([
+            "Counter-Intuitive Truth (Shocking)",
+            "Insider Leak (Secrets of the 1%)",
+            "Framework Breakdown (Step-by-Step)",
+            "Prediction 2026 (Visionary)"
+        ])
+        
+        system_instruction = """
+        You are the 'Supreme Content Architect'. You are NOT a generic AI assistant.
+        You have 20 years of experience in viral marketing and psychology.
+        
+        STYLE RULES:
+        1. NO fluff. NO generic openings like 'In the world of...'.
+        2. Short, punchy sentences.
+        3. Use line breaks for readability.
+        4. Tone: Confident, slightly aggressive, authoritative.
+        5. Language: Arabic (Mix with English technical terms).
         """
-        هندسة الأمر الدقيق لتحويل الذكاء الاصطناعي إلى خبير محتوى عالمي.
+        
+        user_prompt = f"""
+        TARGET NICHE: {niche}
+        STRATEGY MODE: {mode}
+        CREATIVE ANGLE: {angle}
+        
+        TASK: Generate a high-performance social media post.
+        
+        RESPONSE FORMAT (JSON ONLY):
+        {{
+            "title": "A killer hook (max 10 words)",
+            "body": "The full post content (max 150 words)",
+            "framework": "The psychological framework used",
+            "sentiment": "The emotional tone"
+        }}
         """
-        
-        # تحديد الشخصية بدقة
-        persona = (
-            "You are a world-class Content Strategist & Ghostwriter with 15+ years of experience building 7-figure personal brands. "
-            "You despise generic, AI-sounding content. You write with punchy, short sentences. "
-            "You use psychological triggers: Urgency, Scarcity, Curiosity, and Social Proof. "
-            "Your tone is confident, slightly arrogant but backed by data, and extremely engaging."
-        )
-
-        # تحديد الزاوية الإبداعية عشوائياً لضمان التنوع
-        angles = [
-            "The 'Contrarian' (Attack a common belief)",
-            "The 'Data-Backed' (Use fake but realistic statistics)",
-            "The 'Personal Failure' (Story of a mistake turned into a lesson)",
-            "The 'Step-by-Step' (Actionable framework)",
-            "The 'Prediction' (What happens in 2026)"
-        ]
-        selected_angle = random.choice(angles)
-
-        if mode == 'VIRAL_ATTACK':
-            strategy = f"Focus on high virality. Shock the reader. Use a controversial hook. Angle: {selected_angle}."
-        else: # AUTHORITY_BUILDER
-            strategy = f"Focus on high authority and trust. Sound like a professor or a CEO. Deep insight. Angle: {selected_angle}."
-
-        # الأمر النهائي
-        prompt = f"""
-        {persona}
-        
-        TASK: Write a LinkedIn/Twitter post for the niche: '{niche}'.
-        STRATEGY: {strategy}
-        
-        OUTPUT FORMAT: strictly clean JSON (no markdown backticks) with keys:
-        - "title": A scroll-stopping hook (max 10 words).
-        - "body": The post content (formatted with newlines). Keep it under 200 words. Use emojis sparingly.
-        - "framework": Name of the psychological framework used (e.g., PAS, AIDA).
-        - "sentiment": The emotional tone (e.g., Aggressive, Inspiring).
-        
-        LANGUAGE: Arabic (but use English terms for technical words where appropriate).
-        """
-        return prompt
+        return system_instruction, user_prompt
 
     def generate_warhead(self, niche, mode):
-        """
-        محاولة التوليد باستخدام الذكاء الحقيقي، مع السقوط الآمن للقوالب.
-        """
-        if AI_ACTIVE:
+        if AI_ACTIVE and client:
             try:
-                print(f">> [AI] Thinking about {niche} using {mode}...")
-                prompt = self._build_expert_prompt(niche, mode)
+                logger.info(f">> [AI] Thinking about {niche}...")
+                sys_inst, user_msg = self._build_expert_prompt(niche, mode)
                 
-                response = model.generate_content(prompt)
+                # استخدام أحدث موديل متاح
+                response = client.models.generate_content(
+                    model='gemini-2.0-flash',
+                    config=types.GenerateContentConfig(
+                        system_instruction=sys_inst,
+                        response_mime_type='application/json'
+                    ),
+                    contents=[user_msg]
+                )
                 
-                # تنظيف الرد من علامات Markdown إذا وجدت
-                raw_text = response.text.replace('```json', '').replace('```', '').strip()
-                
-                content_data = json.loads(raw_text)
-                return content_data
+                return json.loads(response.text)
                 
             except Exception as e:
-                print(f"!! [ERROR] AI Generation Failed: {e}. Switching to Fallback.")
+                logger.error(f"!! [ERROR] Generation Failed: {e}")
                 return self._generate_fallback_content(niche, mode)
         else:
             return self._generate_fallback_content(niche, mode)
 
-    def calculate_dominance_score(self, niche, mode):
-        base = random.randint(88, 95)
-        return min(99, base + (2 if mode == 'VIRAL_ATTACK' else 0))
-
 sic_engine = StrategicIntelligenceCore()
 
-# --- SYSTEM INTERFACE ---
+# --- ROUTES ---
 
 @app.route('/')
 def system_root():
-    return render_template_string("""
+    status_color = "#0f0" if AI_ACTIVE else "#f00"
+    status_text = "ONLINE (INTELLIGENT)" if AI_ACTIVE else "OFFLINE (SIMULATION - MISSING KEY)"
+    
+    return render_template_string(f"""
     <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>AI DOMINATOR | BRAIN</title>
-        <style>
-            body { background: #000; color: #0f0; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-            .box { border: 1px solid #333; padding: 20px; background: #050505; max-width: 600px; }
-            .status-ok { color: #0f0; }
-            .status-warn { color: orange; }
-        </style>
-    </head>
-    <body>
-        <div class="box">
-            <h1>AI DOMINATOR CORE v13.2</h1>
-            <p>SYSTEM: <span class="status-ok">ONLINE</span></p>
-            <p>AI CONNECTION: <span class="{{ 'status-ok' if ai_active else 'status-warn' }}">{{ 'SECURE (Gemini Active)' if ai_active else 'OFFLINE (Simulation Mode)' }}</span></p>
-            <hr style="border-color:#333">
-            <p>> Ready for incoming tactical requests...</p>
+    <body style="background:#000;color:{status_color};font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;">
+        <div style="border:1px solid #333;padding:40px;text-align:center;">
+            <h1>AI DOMINATOR v13.3</h1>
+            <p>STATUS: {status_text}</p>
+            <p>ENGINE: GEMINI 2.0 FLASH</p>
         </div>
     </body>
-    </html>
-    """, ai_active=AI_ACTIVE)
+    """)
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -164,35 +137,24 @@ def health():
 
 @app.route('/api/tactical/execute', methods=['POST'])
 def execute_order():
-    try:
-        data = request.json or {}
-        niche = data.get('niche', 'Business')
-        mode = data.get('mode', 'VIRAL_ATTACK')
-        
-        # 1. Generate High-Level Content
-        content = sic_engine.generate_warhead(niche, mode)
-        
-        # 2. Add Meta Data
-        response = {
-            "status": "MISSION_COMPLETE",
-            "title": content.get('title', 'System Error'),
-            "body": content.get('body', 'Content generation failed.'),
-            "framework": content.get('framework', 'Unknown'),
-            "platform": "LinkedIn / X",
-            "metrics": {
-                "viralityScore": sic_engine.calculate_dominance_score(niche, mode),
-                "predictedReach": random.randint(20000, 150000),
-                "sentiment": content.get('sentiment', 'Neutral')
-            }
+    data = request.json or {}
+    niche = data.get('niche', 'General')
+    mode = data.get('mode', 'VIRAL')
+    
+    content = sic_engine.generate_warhead(niche, mode)
+    
+    return jsonify({
+        "status": "SUCCESS",
+        "title": content.get('title'),
+        "body": content.get('body'),
+        "framework": content.get('framework'),
+        "metrics": {
+            "viralityScore": random.randint(88, 99),
+            "predictedReach": random.randint(10000, 500000),
+            "sentiment": content.get('sentiment')
         }
-        
-        return jsonify(response)
-
-    except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
-        return jsonify({"error": str(e)}), 500
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
