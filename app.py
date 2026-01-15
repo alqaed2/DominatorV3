@@ -138,7 +138,7 @@ def system_root():
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({"status": "ONLINE", "ai_active": AI_ACTIVE, "model": "gemini-1.5-flash"})
+    return jsonify({"status": "ONLINE", "ai_active": AI_ACTIVE, "model": "gemini-flash-latest"})
 
 @app.route('/api/tactical/execute', methods=['POST'])
 def execute_order():
@@ -166,3 +166,4 @@ def execute_order():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
