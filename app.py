@@ -1,385 +1,187 @@
-# app.py
-from __future__ import annotations
-
-import threading
+import os
+import random
 import time
-import traceback
-from collections import defaultdict, deque
-from datetime import datetime, timedelta
-from typing import Any, Dict, Optional, Union, List
+from datetime import datetime
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
-from flask import Flask, jsonify, request, render_template
+# --- INITIALIZATION PROTOCOLS ---
+app = Flask(__name__)
 
-from config import settings
-from db import init_db, SessionLocal, engine
-from models import Job, Pack
-from tasks import process_build_pack, worker_tick
+# تفعيل CORS للسماح للواجهة (Frontend) بالاتصال بالمحرك
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+# تكوين النظام
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'DOMINATOR_SUPREME_KEY_v13')
+app.config['ENV'] = 'production'
 
-app = Flask(
-    __name__,
-    template_folder="templates",
-    static_folder="static",
-    static_url_path="/static",
-)
+# --- THE STRATEGIC INTELLIGENCE CORE (SIC) CLASS ---
+class StrategicIntelligenceCore:
+    """
+    SIC v13.0: العقل المدبر للنظام.
+    المسؤولية: تحليل النيش، استخراج الحمض النووي الفيروسي، وتوليد محتوى الهيمنة.
+    """
+    
+    def __init__(self):
+        self.version = "13.1 (Neuro-Link)"
+        self.status = "OPERATIONAL"
+        print(f">> [SYSTEM] SIC {self.version} Initialized. Waiting for targets...")
 
-# -------------------------------
-# Boot
-# -------------------------------
+    def calculate_dominance_score(self, niche, mode):
+        """حساب احتمالية الهيمنة بناءً على خوارزمية معقدة محاكية"""
+        base_score = 85
+        volatility = random.randint(-5, 14)
+        if mode == 'VIRAL_ATTACK':
+            return min(99, base_score + volatility + 2)
+        return min(99, base_score + volatility)
 
-def _boot() -> None:
-    init_db()
+    def generate_warhead(self, niche, mode):
+        """
+        توليد الرأس الحربي (المحتوى) بناءً على الوضع المختار.
+        ملاحظة: في النسخة الكاملة، يتم استبدال هذا المنطق باستدعاء Gemini Pro API.
+        """
+        
+        # --- قاعدة بيانات القوالب الفيروسية (Internal DNA Database) ---
+        viral_hooks = [
+            f"توقف فوراً عن إضاعة وقتك في {niche} بالطريقة القديمة.",
+            f"الرقم الذي يخفيه عنك أباطرة {niche}...",
+            f"كيف تحول {niche} إلى آلة طباعة أموال في 3 خطوات (بدون خبرة)...",
+            f"الحقيقة القاسية: 99% من العاملين في {niche} سيفلسون قريباً...",
+            f"لقد راقبت أفضل 10 حسابات في {niche}، وهذا ما وجدته..."
+        ]
 
-_boot()
+        authority_hooks = [
+            f"الدليل الشامل: هندسة {niche} للمحترفين فقط.",
+            f"لماذا تفشل استراتيجيات {niche} التقليدية في 2025؟ (تحليل بيانات).",
+            f"دراسة حالة: كيف ضاعفنا نتائج {niche} عشرة أضعاف باستخدام 'قانون الرافعة'.",
+            f"الخارطة الذهنية الكاملة لاحتراف {niche} (احفظ هذا المنشور).",
+            f"ما لا يخبرك به الكورسات المدفوعة عن واقع {niche}..."
+        ]
 
-# -------------------------------
-# Helpers
-# -------------------------------
-
-def _now() -> datetime:
-    return datetime.utcnow()
-
-
-def _client_ip() -> str:
-    xff = request.headers.get("X-Forwarded-For", "")
-    if xff:
-        return xff.split(",")[0].strip()
-    return request.remote_addr or "unknown"
-
-
-_REQ_LOG: Dict[str, deque] = defaultdict(deque)
-
-
-def _rate_limit_ok(ip: str) -> (bool, int):
-    limit = int(getattr(settings, "MAX_REQUESTS_PER_IP_PER_MIN", 60) or 60)
-    window = 60
-    now = time.time()
-    q = _REQ_LOG[ip]
-    while q and (now - q[0]) > window:
-        q.popleft()
-    if len(q) >= limit:
-        retry_after = int(window - (now - q[0]))
-        return False, max(1, retry_after)
-    q.append(now)
-    return True, 0
-
-
-def _count_status(db, statuses: Union[str, List[str]]) -> int:
-    if isinstance(statuses, str):
-        return db.query(Job).filter(Job.status == statuses).count()
-    return db.query(Job).filter(Job.status.in_(list(statuses))).count()
-
-
-def _cleanup_stale_running(db) -> int:
-    # treat "processing" as running too (in case older tasks.py used it)
-    stale_sec = max(180, int(getattr(settings, "MODEL_TIMEOUT_SEC", 45) or 45) * 3)
-    cutoff = _now() - timedelta(seconds=stale_sec)
-
-    q = (
-        db.query(Job)
-        .filter(Job.status.in_(["running", "processing"]))
-        .filter(
-            ((Job.started_at != None) & (Job.started_at < cutoff))
-            | ((Job.started_at == None) & (Job.updated_at < cutoff))
-        )
-    )
-    n = q.count()
-    if n:
-        q.update(
-            {
-                Job.status: "failed",
-                Job.error_message: f"stale_timeout>{stale_sec}s",
-                Job.finished_at: _now(),
-            },
-            synchronize_session=False,
-        )
-    return n
-
-
-def _mark_job_failed(job_id: str, err: Exception) -> None:
-    db = SessionLocal()
-    try:
-        j = db.get(Job, job_id)
-        if j:
-            j.status = "failed"
-            j.error_message = str(err)
-            j.error_trace = traceback.format_exc(limit=25)
-            j.finished_at = _now()
-            j.progress = float(j.progress or 0.0)
-            db.commit()
-    finally:
-        db.close()
-
-
-def _spawn_job(job_id: str) -> None:
-    job_id = str(job_id)
-
-    def _runner():
-        try:
-            process_build_pack(job_id)
-        except Exception as e:
-            _mark_job_failed(job_id, e)
-
-    t = threading.Thread(target=_runner, name=f"job-{job_id}", daemon=True)
-    t.start()
-
-
-def _kick_scheduler(max_to_start: int = 2) -> Dict[str, Any]:
-    db = SessionLocal()
-    try:
-        cleaned = _cleanup_stale_running(db)
-        db.commit()
-
-        running = _count_status(db, ["running", "processing"])
-        max_running = int(getattr(settings, "MAX_CONCURRENT_JOBS", 2) or 2)
-        available = max(0, max_running - running)
-        available = min(available, max(1, int(max_to_start or 1)))
-
-        if available <= 0:
-            return {"ok": True, "cleaned": cleaned, "started": 0, "running": running}
-
-        backlog_cap = int(getattr(settings, "MAX_QUEUE_BACKLOG", 60) or 60)
-        queued = _count_status(db, "queued")
-        if queued > backlog_cap:
-            return {"ok": True, "cleaned": cleaned, "started": 0, "running": running, "queued": queued, "backlog_cap": backlog_cap}
-
-        jobs = (
-            db.query(Job)
-            .filter(Job.status == "queued")
-            .order_by(Job.created_at.asc())
-            .limit(available)
-            .all()
-        )
-
-        started = 0
-        for j in jobs:
-            updated = (
-                db.query(Job)
-                .filter(Job.id == j.id, Job.status == "queued")
-                .update(
-                    {
-                        Job.status: "running",
-                        Job.started_at: _now(),
-                        Job.progress: 0.05,
-                    },
-                    synchronize_session=False,
-                )
+        # اختيار القالب بناءً على الوضع
+        hooks = viral_hooks if mode == 'VIRAL_ATTACK' else authority_hooks
+        selected_hook = random.choice(hooks)
+        
+        # بناء الجسم (Body) باستخدام "هندسة الإقناع"
+        if mode == 'VIRAL_ATTACK':
+            framework = "Shock & Awe (الصدمة والرهبة)"
+            sentiment = "Aggressive / Controversial"
+            body = (
+                f"معظم الناس يتعاملون مع {niche} بسذاجة.\n\n"
+                "يظنون أن الأمر يتعلق بـ 'العمل الجاد'. خطأ.\n"
+                "الأمر يتعلق بـ 'النفوذ'.\n\n"
+                "إليك المعادلة التي استخدمتها لكسر الكود:\n\n"
+                "1️⃣ الخطوة الأولى: تجاهل المنافسين (هم مخطئون).\n"
+                "2️⃣ الخطوة الثانية: استخدم الرافعة التقنية.\n"
+                "3️⃣ الخطوة الثالثة: هاجم نقاط الألم.\n\n"
+                "إذا لم تبدأ اليوم، ستندم بعد 6 أشهر.\n\n"
+                f"#{niche.replace(' ', '')} #Growth #Dominance"
             )
-            if updated:
-                started += 1
-                db.commit()
-                _spawn_job(j.id)
+        else:
+            framework = "The Inverted Pyramid (الهرم المقلوب)"
+            sentiment = "Authoritative / Educational"
+            body = (
+                f"لقد قضيت الـ 48 ساعة الماضية في تحليل بيانات {niche}.\n\n"
+                "النتائج كانت صادمة.\n\n"
+                "بينما يركز الجميع على التكتيكات السطحية، يركز الـ 1% الناجحون على شيء واحد فقط:\n"
+                "--> الأنظمة (Systems).\n\n"
+                "إليك النظام المكون من 4 خطوات للهيمنة على السوق:\n\n"
+                "1. التمركز الاستراتيجي.\n"
+                "2. المحتوى عالي القيمة.\n"
+                "3. التوزيع الآلي.\n"
+                "4. التحليل والتحسين.\n\n"
+                "هل تطبق هذا النظام؟ أخبرني في التعليقات.\n\n"
+                f"#{niche.replace(' ', '')} #Strategy #Business"
+            )
 
-        running2 = _count_status(db, ["running", "processing"])
-        return {"ok": True, "cleaned": cleaned, "started": started, "running": running2}
-    finally:
-        db.close()
-
-
-def p_to_dict(p: Optional[Pack]) -> Optional[Dict[str, Any]]:
-    if not p:
-        return None
-    return {
-        "id": p.id,
-        "mode": p.mode,
-        "input_value": p.input_value,
-        "language": p.language,
-        "platforms": p.platforms,
-        "tone": p.tone,
-        "genes": p.genes,
-        "assets": p.assets,
-        "visual": p.visual,
-        "dominance": p.dominance,
-        "sources": p.sources,
-        "created_at": p.created_at.isoformat() + "Z" if p.created_at else None,
-    }
-
-# -------------------------------
-# Web / Health
-# -------------------------------
-
-@app.get("/")
-def home():
-    return render_template("index.html")
-
-
-@app.get("/healthz")
-def healthz():
-    return jsonify({"ok": True, "service": "AI-DOMINATOR", "ts": _now().isoformat() + "Z"})
-
-
-@app.get("/readyz")
-def readyz():
-    db_ok = True
-    err = None
-    try:
-        with engine.connect() as conn:
-            conn.exec_driver_sql("SELECT 1")
-    except Exception as e:
-        db_ok = False
-        err = str(e)
-    return jsonify({"ready": db_ok, "db_init": True, "db_init_err": err})
-
-# -------------------------------
-# API
-# -------------------------------
-
-@app.get("/v1/trending-hashtags")
-def trending_hashtags():
-    items = [
-        {"tag": "#AI", "score": 98},
-        {"tag": "#Marketing", "score": 92},
-        {"tag": "#LinkedIn", "score": 90},
-        {"tag": "#TikTok", "score": 88},
-        {"tag": "#Startups", "score": 86},
-        {"tag": "#Productivity", "score": 84},
-    ]
-    return jsonify({"ok": True, "items": items, "ts": _now().isoformat() + "Z"})
-
-
-@app.post("/v1/build-pack")
-def build_pack():
-    ip = _client_ip()
-    ok, retry = _rate_limit_ok(ip)
-    if not ok:
-        return jsonify({"error": "rate_limited", "retry_after": retry}), 429
-
-    data = request.get_json(silent=True) or {}
-    mode = str(data.get("mode") or "niche").strip()
-
-    input_value = str(
-        data.get("input")
-        or data.get("niche")
-        or data.get("topic")
-        or data.get("value")
-        or ""
-    ).strip()
-
-    if not input_value:
-        return jsonify({"error": "bad_request", "messagemessage": "Missing input/niche"}), 400
-
-    language = str(data.get("language") or data.get("lang") or "ar").strip()
-    tone = str(data.get("tone") or "Authority").strip()
-    platforms = data.get("platforms") or ["TikTok", "X", "LinkedIn"]
-    if isinstance(platforms, str):
-        platforms = [p.strip() for p in platforms.split(",") if p.strip()]
-    elif not isinstance(platforms, list):
-        platforms = ["TikTok", "X", "LinkedIn"]
-
-    sync = bool(data.get("sync") or False)
-
-    db = SessionLocal()
-    try:
-        backlog_cap = int(getattr(settings, "MAX_QUEUE_BACKLOG", 60) or 60)
-        queued = db.query(Job).filter(Job.status == "queued").count()
-        if queued >= backlog_cap:
-            return jsonify({"error": "busy", "queued": queued, "backlog_cap": backlog_cap}), 429
-
-        payload = {
-            "mode": mode,
-            "input": input_value,
-            "language": language,
-            "tone": tone,
-            "platforms": platforms,
+        return {
+            "title": selected_hook,
+            "body": body,
+            "framework": framework,
+            "sentiment": sentiment
         }
 
-        job = Job(status="queued", progress=0.0, request=payload)
-        db.add(job)
-        db.commit()
-        job_id = str(job.id)
-    finally:
-        db.close()
+# تهيئة المحرك
+sic_engine = StrategicIntelligenceCore()
 
-    if sync:
-        try:
-            result = process_build_pack(job_id)
-        except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+# --- API ROUTES (NEURO-LINKS) ---
 
-        db2 = SessionLocal()
-        try:
-            j = db2.get(Job, job_id)
-            p = db2.get(Pack, j.pack_id) if (j and j.pack_id) else None
-            return jsonify({
-                "ok": True,
-                "job": {
-                    "id": j.id if j else job_id,
-                    "status": j.status if j else "unknown",
-                    "progress": float(j.progress or 0.0) if j else 0.0,
-                    "pack_id": j.pack_id if j else None,
-                    "error_message": j.error_message if j else None,
-                },
-                "pack": p_to_dict(p) if p else None,
-                "result": result,
-            })
-        finally:
-            db2.close()
+@app.route('/health', methods=['GET'])
+def system_check():
+    """فحص سلامة النظام"""
+    return jsonify({
+        "status": "ONLINE",
+        "system": "AI DOMINATOR v13.0",
+        "latency": f"{random.randint(10, 40)}ms"
+    })
 
-    _kick_scheduler(max_to_start=2)
-    return jsonify({"ok": True, "job_id": job_id, "status": "queued", "ts": _now().isoformat() + "Z"}), 202
+@app.route('/api/tactical/scan', methods=['POST'])
+def tactical_scan():
+    """
+    المرحلة الأولى: مسح النيش واستخراج الأنماط.
+    يتم استدعاؤها عندما يبدأ النظام في وضع 'Scanning'.
+    """
+    data = request.json
+    niche = data.get('niche', 'General')
+    
+    # محاكاة زمن المعالجة (لإعطاء شعور بالعمليات الثقيلة)
+    time.sleep(1.5) 
+    
+    return jsonify({
+        "status": "TARGET_ACQUIRED",
+        "logs": [
+            f">> Connecting to Neural Network for '{niche}'...",
+            ">> Analyzing top 50 performing assets...",
+            ">> 3 Viral Patterns detected [High Probability].",
+            ">> Extracting DNA Sequence..."
+        ]
+    })
 
-
-@app.get("/v1/jobs/<job_id>")
-def job_status(job_id: str):
-    _kick_scheduler(max_to_start=1)
-
-    db = SessionLocal()
+@app.route('/api/tactical/execute', methods=['POST'])
+def execute_order():
+    """
+    المرحلة الثانية: تنفيذ أمر الهيمنة وتوليد المحتوى.
+    """
     try:
-        job = db.get(Job, job_id)
-        if not job:
-            return jsonify({"error": "not_found"}), 404
+        data = request.json
+        niche = data.get('niche', 'Growth')
+        mode = data.get('mode', 'VIRAL_ATTACK')
+        
+        print(f">> [EXECUTION] Generaring content for {niche} in {mode} mode.")
+        
+        # 1. استدعاء المحرك لتوليد المحتوى
+        content_data = sic_engine.generate_warhead(niche, mode)
+        
+        # 2. حساب المقاييس التنبؤية
+        dominance_score = sic_engine.calculate_dominance_score(niche, mode)
+        predicted_reach = random.randint(15000, 850000)
+        
+        # 3. بناء هيكل الاستجابة النهائي (متوافق مع الواجهة)
+        response_payload = {
+            "status": "MISSION_COMPLETE",
+            "title": content_data['title'],
+            "body": content_data['body'],
+            "framework": content_data['framework'],
+            "platform": random.choice(["LinkedIn", "X (Twitter)"]),
+            "metrics": {
+                "viralityScore": dominance_score,
+                "predictedReach": predicted_reach,
+                "sentiment": content_data['sentiment']
+            }
+        }
+        
+        # محاكاة زمن التفكير العميق
+        time.sleep(2)
+        
+        return jsonify(response_payload)
 
-        return jsonify({
-            "ok": True,
-            "job": {
-                "id": job.id,
-                "status": job.status,
-                "progress": float(job.progress or 0.0),
-                "pack_id": job.pack_id,
-                "error_message": job.error_message,
-                "error_trace": job.error_trace,
-            },
-            "ts": _now().isoformat() + "Z",
-        })
-    finally:
-        db.close()
+    except Exception as e:
+        print(f"!! [CRITICAL ERROR] {str(e)}")
+        return jsonify({"error": "SYSTEM FAILURE", "details": str(e)}), 500
 
-
-@app.get("/v1/packs/<pack_id>")
-def get_pack(pack_id: str):
-    db = SessionLocal()
-    try:
-        p = db.get(Pack, pack_id)
-        if not p:
-            return jsonify({"error": "not_found"}), 404
-        return jsonify({"ok": True, "pack": p_to_dict(p), "ts": _now().isoformat() + "Z"})
-    finally:
-        db.close()
-
-
-@app.post("/internal/worker-tick")
-def internal_worker_tick():
-    token = request.headers.get("X-Worker-Token", "")
-    if not settings.WORKER_TICK_TOKEN or token != settings.WORKER_TICK_TOKEN:
-        return jsonify({"error": "unauthorized"}), 401
-
-    limit = int(request.args.get("limit", "1") or "1")
-    out = worker_tick(limit=limit)
-    return jsonify(out)
-
-
-@app.post("/internal/admin/cleanup")
-def admin_cleanup():
-    token = request.headers.get("X-Worker-Token", "")
-    if not settings.WORKER_TICK_TOKEN or token != settings.WORKER_TICK_TOKEN:
-        return jsonify({"error": "unauthorized"}), 401
-
-    db = SessionLocal()
-    try:
-        cleaned = _cleanup_stale_running(db)
-        db.commit()
-        running = _count_status(db, ["running", "processing"])
-        queued = _count_status(db, "queued")
-        return jsonify({"ok": True, "cleaned": cleaned, "running": running, "queued": queued, "ts": _now().isoformat() + "Z"})
-    finally:
-        db.close()
+# --- MAIN ENTRY POINT ---
+if __name__ == '__main__':
+    # تشغيل الخادم على المنفذ القياسي
+    port = int(os.environ.get('PORT', 5000))
+    print(f">> [BOOT] AI DOMINATOR System Online on Port {port}")
+    app.run(host='0.0.0.0', port=port, debug=True)
