@@ -22,7 +22,7 @@ if GOOGLE_API_KEY:
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
         # نستخدم موديل سريع وذكي
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-flash-latest')
         AI_ACTIVE = True
         print(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI AI.")
     except Exception as e:
@@ -195,3 +195,4 @@ def execute_order():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
