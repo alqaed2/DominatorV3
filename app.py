@@ -27,68 +27,76 @@ if GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
         AI_ACTIVE = True
-        logger.info(">> [SYSTEM] v14.0 OMNI-CHANNEL ENGINE ACTIVE.")
+        logger.info(">> [SYSTEM] v14.1 CINEMATIC ENGINE ACTIVE.")
     except Exception as e:
         logger.error(f"!! [ERROR] AI Connection Failed: {e}")
 else:
     logger.warning("!! [CRITICAL] KEY MISSING.")
 
-# --- THE STRATEGIC INTELLIGENCE CORE (SIC) v14.0 ---
+# --- THE STRATEGIC INTELLIGENCE CORE (SIC) v14.1 ---
 class StrategicIntelligenceCore:
     def __init__(self):
-        self.version = "14.0 (Omni-Warlord)"
+        self.version = "14.1 (Cinema-Grade)"
 
     def _generate_fallback_content(self, niche):
         return {
             "title": "نظام الطوارئ: المفتاح مفقود",
             "body": "يرجى التحقق من GEMINI_API_KEY في إعدادات Render.",
             "image_prompt": "Error screen, cyberpunk style, red warning lights",
+            "hashtags": ["#Error", "#SystemCheck"],
             "framework": "SYSTEM_FAILURE",
             "sentiment": "Critical"
         }
 
     def _build_expert_prompt(self, niche, mode):
-        # زوايا هجومية أكثر تنوعاً
+        # زوايا هجومية
         angles = [
-            "The 'Myth Buster' (Destroy a common misconception)",
-            "The 'Behind the Scenes' (The ugly truth of the industry)",
-            "The 'Data Reveal' (Shocking numbers/statistics)",
-            "The 'Personal Confession' (Vulnerable yet authoritative)",
-            "The 'Future Vision' (Where is this market going?)"
+            "The 'Visual Shock' (Describe something visually impossible to ignore)",
+            "The 'Luxury Insider' (High-end, exclusive vibe)",
+            "The 'Raw Authenticity' (Gritty, real, behind the scenes)",
+            "The 'Future Tech' (Modern, clean, sharp)",
         ]
         selected_angle = random.choice(angles)
         
         system_instruction = """
-        You are the 'Supreme Content Warlord'. You are NOT a polite assistant.
-        You are a world-class expert with 15 years of experience in the specific niche provided.
+        You are the 'Supreme Content & Art Director'. You have 20 years of experience in luxury branding and viral content.
         
-        CRITICAL RULES:
-        1. **Cultural Resonance:** If the niche implies a specific region (e.g., 'Saudi Coffee'), use the appropriate local professional tone (White Dialect/Mix of English terms). Don't sound like a translated book.
-        2. **Terminology:** Use deep industry jargon correctly (e.g., for Coffee: Anaerobic, V60, TDS, Extraction).
-        3. **Structure:** HOOK -> VALUE -> TWIST -> CTA.
-        4. **Visuals:** You must imagine the PERFECT image to go with this post.
+        PART 1: THE TEXT
+        - Write a high-impact social media post in ARABIC.
+        - Tone: Professional, Authority, slightly controversial or deeply educational.
+        - Use local dialect nuances if the niche implies a specific region (e.g., Saudi Coffee -> Khaleeji White Dialect).
         
-        TONE:
-        - If 'VIRAL_ATTACK': Aggressive, controversial, fast-paced.
-        - If 'AUTHORITY_BUILDER': Sophisticated, deep, analytical, 'The Professor' vibe.
+        PART 2: THE VISUAL (CRITICAL)
+        - You must write a MIDJOURNEY PROMPT (in English).
+        - DO NOT write generic descriptions like "A cup of coffee".
+        - YOU MUST USE THESE KEYWORDS: 'Cinematic lighting', 'Hyper-realistic', '8k resolution', 'Shot on Arri Alexa', '35mm lens', 'Depth of field', 'Bokeh', 'Color graded', 'Vivid details'.
+        - Describe the texture, the lighting (Golden hour, Moody, Neon, Studio), and the camera angle.
+        - Make it look EXPENSIVE and IMPRESSIVE.
+        
+        PART 3: THE TRENDS (HASHTAGS)
+        - Generate exactly 8 highly relevant, high-volume hashtags.
+        - Mix Arabic and English tags.
+        - They must be current trends relevant to the niche.
         """
         
         user_prompt = f"""
         TARGET NICHE: {niche}
         STRATEGY MODE: {mode}
-        CREATIVE ANGLE: {selected_angle}
+        VISUAL ANGLE: {selected_angle}
         
         TASK:
-        1. Write a social media post (Arabic).
-        2. Create a detailed prompt for an AI Image Generator (Midjourney/Flux) to create a matching image (English).
+        1. Write the Arabic Post (Hook + Body).
+        2. Create the Cinematic Image Prompt.
+        3. Extract 8 Trending Hashtags.
         
         RESPONSE FORMAT (JSON ONLY):
         {{
-            "title": "Killer hook (max 10 words, Arabic)",
-            "body": "Post content (max 150 words, Arabic, use line breaks)",
-            "image_prompt": "Detailed English prompt for Midjourney describing the scene, lighting, and mood",
-            "framework": "Psychological framework used",
-            "sentiment": "Emotional tone"
+            "title": "Hook (Arabic)",
+            "body": "Content (Arabic)",
+            "image_prompt": "Midjourney Prompt (English) - MUST BE DETAILED & CINEMATIC",
+            "hashtags": ["#tag1", "#tag2", ...],
+            "framework": "Psychological framework",
+            "sentiment": "Tone"
         }}
         """
         return system_instruction, user_prompt
@@ -103,7 +111,7 @@ class StrategicIntelligenceCore:
                     config=types.GenerateContentConfig(
                         system_instruction=sys_inst,
                         response_mime_type='application/json',
-                        temperature=0.85 # Increased for creativity
+                        temperature=0.9  # High creativity for visuals
                     ),
                     contents=[user_msg]
                 )
@@ -119,7 +127,7 @@ sic_engine = StrategicIntelligenceCore()
 # --- ROUTES ---
 @app.route('/')
 def root():
-    return render_template_string("<h1>AI DOMINATOR v14.0 ACTIVE</h1>")
+    return render_template_string("<h1>AI DOMINATOR v14.1 VISUAL MASTER ACTIVE</h1>")
 
 @app.route('/api/tactical/execute', methods=['POST'])
 def execute():
@@ -134,9 +142,10 @@ def execute():
         "title": content.get('title'),
         "body": content.get('body'),
         "image_prompt": content.get('image_prompt'),
+        "hashtags": content.get('hashtags', []),
         "framework": content.get('framework'),
         "metrics": {
-            "viralityScore": random.randint(90, 99),
+            "viralityScore": random.randint(92, 99),
             "predictedReach": random.randint(50000, 1000000),
             "sentiment": content.get('sentiment')
         }
