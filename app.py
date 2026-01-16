@@ -8,83 +8,87 @@ from flask_cors import CORS
 from google import genai
 from google.genai import types
 
-# --- INITIALIZATION PROTOCOLS ---
+# --- INITIALIZATION ---
 app = Flask(__name__)
-# تفعيل CORS للسماح بالاتصال من أي مكان (Frontend/Console)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'DOMINATOR_SUPREME_KEY_v13')
 app.config['ENV'] = 'production'
 
-# إعداد السجلات (Logging)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SIC_CORE")
 
-# --- AI BRAIN ACTIVATION ---
-# سحب المفتاح حصرياً من بيئة Render باستخدام الاسم الصحيح (GEMINI_API_KEY)
+# --- AI CONNECTIVITY ---
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 client = None
 AI_ACTIVE = False
 
 if GEMINI_API_KEY:
     try:
-        # الاتصال بمكتبة Google GenAI الحديثة
         client = genai.Client(api_key=GEMINI_API_KEY)
         AI_ACTIVE = True
-        logger.info(">> [SYSTEM] NEURO-LINK ESTABLISHED WITH GEMINI FLASH LATEST.")
+        logger.info(">> [SYSTEM] v14.0 OMNI-CHANNEL ENGINE ACTIVE.")
     except Exception as e:
-        logger.error(f"!! [WARNING] AI Connection Failed: {e}")
+        logger.error(f"!! [ERROR] AI Connection Failed: {e}")
 else:
-    logger.warning("!! [CRITICAL] NO GEMINI_API_KEY FOUND. SYSTEM RUNNING IN SIMULATION MODE.")
+    logger.warning("!! [CRITICAL] KEY MISSING.")
 
-# --- THE STRATEGIC INTELLIGENCE CORE (SIC) ---
+# --- THE STRATEGIC INTELLIGENCE CORE (SIC) v14.0 ---
 class StrategicIntelligenceCore:
     def __init__(self):
-        self.version = "13.6 (Flash-Latest-Force)"
+        self.version = "14.0 (Omni-Warlord)"
 
-    def _generate_fallback_content(self, niche, mode):
-        """خطة الطوارئ عند فشل الاتصال أو غياب المفتاح"""
+    def _generate_fallback_content(self, niche):
         return {
-            "title": f"⚠️ تنبيه تشغيلي: النظام يعمل بدون ذكاء",
-            "body": f"عذراً أيها القائد.\n\nلم يتم العثور على مفتاح API، أو حدث خطأ في الاتصال.\n\nتأكد من أن المتغير GEMINI_API_KEY مضاف بشكل صحيح في Render.\n\nالنيش المستهدف: {niche}",
-            "framework": "SYSTEM_ERROR",
+            "title": "نظام الطوارئ: المفتاح مفقود",
+            "body": "يرجى التحقق من GEMINI_API_KEY في إعدادات Render.",
+            "image_prompt": "Error screen, cyberpunk style, red warning lights",
+            "framework": "SYSTEM_FAILURE",
             "sentiment": "Critical"
         }
 
     def _build_expert_prompt(self, niche, mode):
-        """هندسة الأوامر المتقدمة"""
-        angle = random.choice([
-            "Counter-Intuitive Truth (Shocking)",
-            "Insider Leak (Secrets of the 1%)",
-            "Framework Breakdown (Step-by-Step)",
-            "Prediction 2026 (Visionary)"
-        ])
+        # زوايا هجومية أكثر تنوعاً
+        angles = [
+            "The 'Myth Buster' (Destroy a common misconception)",
+            "The 'Behind the Scenes' (The ugly truth of the industry)",
+            "The 'Data Reveal' (Shocking numbers/statistics)",
+            "The 'Personal Confession' (Vulnerable yet authoritative)",
+            "The 'Future Vision' (Where is this market going?)"
+        ]
+        selected_angle = random.choice(angles)
         
         system_instruction = """
-        You are the 'Supreme Content Architect'. You are NOT a generic AI assistant.
-        You have 20 years of experience in viral marketing and psychology.
+        You are the 'Supreme Content Warlord'. You are NOT a polite assistant.
+        You are a world-class expert with 15 years of experience in the specific niche provided.
         
-        STYLE RULES:
-        1. NO fluff. NO generic openings like 'In the world of...'.
-        2. Short, punchy sentences.
-        3. Use line breaks for readability.
-        4. Tone: Confident, slightly aggressive, authoritative.
-        5. Language: Arabic (Mix with English technical terms where appropriate).
+        CRITICAL RULES:
+        1. **Cultural Resonance:** If the niche implies a specific region (e.g., 'Saudi Coffee'), use the appropriate local professional tone (White Dialect/Mix of English terms). Don't sound like a translated book.
+        2. **Terminology:** Use deep industry jargon correctly (e.g., for Coffee: Anaerobic, V60, TDS, Extraction).
+        3. **Structure:** HOOK -> VALUE -> TWIST -> CTA.
+        4. **Visuals:** You must imagine the PERFECT image to go with this post.
+        
+        TONE:
+        - If 'VIRAL_ATTACK': Aggressive, controversial, fast-paced.
+        - If 'AUTHORITY_BUILDER': Sophisticated, deep, analytical, 'The Professor' vibe.
         """
         
         user_prompt = f"""
         TARGET NICHE: {niche}
         STRATEGY MODE: {mode}
-        CREATIVE ANGLE: {angle}
+        CREATIVE ANGLE: {selected_angle}
         
-        TASK: Generate a high-performance social media post.
+        TASK:
+        1. Write a social media post (Arabic).
+        2. Create a detailed prompt for an AI Image Generator (Midjourney/Flux) to create a matching image (English).
         
         RESPONSE FORMAT (JSON ONLY):
         {{
-            "title": "A killer hook (max 10 words)",
-            "body": "The full post content (max 150 words)",
-            "framework": "The psychological framework used",
-            "sentiment": "The emotional tone"
+            "title": "Killer hook (max 10 words, Arabic)",
+            "body": "Post content (max 150 words, Arabic, use line breaks)",
+            "image_prompt": "Detailed English prompt for Midjourney describing the scene, lighting, and mood",
+            "framework": "Psychological framework used",
+            "sentiment": "Emotional tone"
         }}
         """
         return system_instruction, user_prompt
@@ -92,75 +96,49 @@ class StrategicIntelligenceCore:
     def generate_warhead(self, niche, mode):
         if AI_ACTIVE and client:
             try:
-                logger.info(f">> [AI] Thinking about {niche} using Gemini Flash Latest...")
                 sys_inst, user_msg = self._build_expert_prompt(niche, mode)
                 
-                # استخدام الموديل المطلوب بدقة (FORCE MODEL)
                 response = client.models.generate_content(
                     model='gemini-flash-latest',
                     config=types.GenerateContentConfig(
                         system_instruction=sys_inst,
                         response_mime_type='application/json',
-                        temperature=0.8
+                        temperature=0.85 # Increased for creativity
                     ),
                     contents=[user_msg]
                 )
-                
-                # معالجة الاستجابة وتحويلها لـ JSON
                 return json.loads(response.text)
-                
             except Exception as e:
-                logger.error(f"!! [ERROR] Generation Failed: {e}")
-                return self._generate_fallback_content(niche, mode)
+                logger.error(f"Generation Error: {e}")
+                return self._generate_fallback_content(niche)
         else:
-            return self._generate_fallback_content(niche, mode)
+            return self._generate_fallback_content(niche)
 
 sic_engine = StrategicIntelligenceCore()
 
 # --- ROUTES ---
-
 @app.route('/')
-def system_root():
-    status_color = "#0f0" if AI_ACTIVE else "#f00"
-    status_text = "ONLINE (GEMINI FLASH LATEST ACTIVE)" if AI_ACTIVE else "OFFLINE (KEY MISSING)"
-    
-    return render_template_string(f"""
-    <!DOCTYPE html>
-    <body style="background:#000;color:{status_color};font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;">
-        <div style="border:1px solid #333;padding:40px;text-align:center;box-shadow:0 0 20px {status_color}40;">
-            <h1>AI DOMINATOR v13.6</h1>
-            <p>STATUS: {status_text}</p>
-            <p>ENGINE: GEMINI FLASH LATEST</p>
-            <p>KEY SOURCE: GEMINI_API_KEY</p>
-            <p style="color:#666;font-size:0.8em;margin-top:20px;">READY FOR TACTICAL COMMANDS</p>
-        </div>
-    </body>
-    """)
-
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({"status": "ONLINE", "ai_active": AI_ACTIVE, "model": "gemini-flash-latest"})
+def root():
+    return render_template_string("<h1>AI DOMINATOR v14.0 ACTIVE</h1>")
 
 @app.route('/api/tactical/execute', methods=['POST'])
-def execute_order():
-    # استقبال البيانات بأمان
+def execute():
     data = request.json or {}
     niche = data.get('niche', 'General')
     mode = data.get('mode', 'VIRAL_ATTACK')
     
-    # تنفيذ الهجوم
     content = sic_engine.generate_warhead(niche, mode)
     
     return jsonify({
         "status": "SUCCESS",
-        "title": content.get('title', 'System Error'),
-        "body": content.get('body', 'Failed to generate content.'),
-        "framework": content.get('framework', 'N/A'),
-        "platform": random.choice(["LinkedIn", "X (Twitter)"]),
+        "title": content.get('title'),
+        "body": content.get('body'),
+        "image_prompt": content.get('image_prompt'),
+        "framework": content.get('framework'),
         "metrics": {
-            "viralityScore": random.randint(89, 99),
-            "predictedReach": random.randint(10000, 500000),
-            "sentiment": content.get('sentiment', 'Neutral')
+            "viralityScore": random.randint(90, 99),
+            "predictedReach": random.randint(50000, 1000000),
+            "sentiment": content.get('sentiment')
         }
     })
 
