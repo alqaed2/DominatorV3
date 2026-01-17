@@ -27,75 +27,77 @@ if GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
         AI_ACTIVE = True
-        logger.info(">> [SYSTEM] v14.1 CINEMATIC ENGINE ACTIVE.")
+        logger.info(">> [SYSTEM] v14.2 VISUAL PRECISION ENGINE ACTIVE.")
     except Exception as e:
         logger.error(f"!! [ERROR] AI Connection Failed: {e}")
 else:
     logger.warning("!! [CRITICAL] KEY MISSING.")
 
-# --- THE STRATEGIC INTELLIGENCE CORE (SIC) v14.1 ---
+# --- THE STRATEGIC INTELLIGENCE CORE (SIC) v14.2 ---
 class StrategicIntelligenceCore:
     def __init__(self):
-        self.version = "14.1 (Cinema-Grade)"
+        self.version = "14.2 (Niche-Visual-Lock)"
 
     def _generate_fallback_content(self, niche):
         return {
-            "title": "نظام الطوارئ: المفتاح مفقود",
-            "body": "يرجى التحقق من GEMINI_API_KEY في إعدادات Render.",
-            "image_prompt": "Error screen, cyberpunk style, red warning lights",
-            "hashtags": ["#Error", "#SystemCheck"],
+            "title": "النظام يعمل في وضع الطوارئ",
+            "body": "يرجى التحقق من مفتاح API. النظام لا يمكنه توليد صور دقيقة بدون ذكاء.",
+            "image_prompt": "Error screen, technical blueprint style, red alert",
+            "hashtags": ["#SystemError"],
             "framework": "SYSTEM_FAILURE",
             "sentiment": "Critical"
         }
 
     def _build_expert_prompt(self, niche, mode):
-        # زوايا هجومية
-        angles = [
-            "The 'Visual Shock' (Describe something visually impossible to ignore)",
-            "The 'Luxury Insider' (High-end, exclusive vibe)",
-            "The 'Raw Authenticity' (Gritty, real, behind the scenes)",
-            "The 'Future Tech' (Modern, clean, sharp)",
+        # زوايا بصرية متخصصة
+        visual_angles = [
+            "Macro Detail (Extreme close-up on texture/object)",
+            "The Professional Workspace (Environment focus)",
+            "Action Shot (Freeze frame of a specific action)",
+            "Mood & Atmosphere (Lighting focus with silhouette)"
         ]
-        selected_angle = random.choice(angles)
+        selected_angle = random.choice(visual_angles)
         
-        system_instruction = """
-        You are the 'Supreme Content & Art Director'. You have 20 years of experience in luxury branding and viral content.
+        system_instruction = f"""
+        You are the 'Supreme Creative Director'. You do not just write posts; you build VISUAL WORLDS.
+        Your expertise: {niche}. You know every tool, every texture, and every hidden detail of this industry.
         
-        PART 1: THE TEXT
-        - Write a high-impact social media post in ARABIC.
-        - Tone: Professional, Authority, slightly controversial or deeply educational.
-        - Use local dialect nuances if the niche implies a specific region (e.g., Saudi Coffee -> Khaleeji White Dialect).
+        ### MISSION PART 1: THE CONTENT (ARABIC)
+        - Write a powerful, scroll-stopping post in Arabic.
+        - Tone: Expert, Authoritative, 'Insider'.
+        - Use local dialect if applicable (e.g., Saudi Coffee -> Khaleeji Vibe).
         
-        PART 2: THE VISUAL (CRITICAL)
-        - You must write a MIDJOURNEY PROMPT (in English).
-        - DO NOT write generic descriptions like "A cup of coffee".
-        - YOU MUST USE THESE KEYWORDS: 'Cinematic lighting', 'Hyper-realistic', '8k resolution', 'Shot on Arri Alexa', '35mm lens', 'Depth of field', 'Bokeh', 'Color graded', 'Vivid details'.
-        - Describe the texture, the lighting (Golden hour, Moody, Neon, Studio), and the camera angle.
-        - Make it look EXPENSIVE and IMPRESSIVE.
+        ### MISSION PART 2: THE VISUAL (ENGLISH - CRITICAL UPGRADE)
+        - You are writing a prompt for Midjourney v6.
+        - **RULE 1: NICHE SPECIFICITY IS KING.** - IF 'Coffee': Do NOT just say 'coffee'. Say 'V60 ceramic dripper', 'Gooseneck kettle pouring water', 'Ethiopian beans texture', 'Barista apron'.
+          - IF 'Crypto': Say 'Ledger Nano X', 'Candlestick charts on 3 monitors', 'Glass desk in dark room'.
+          - IF 'Real Estate': Say 'Modern Villa Facade', 'Marble countertops', 'Golden hour architectural shot'.
+        - **RULE 2: CINEMATIC REALISM.**
+          - Use these tokens: 'Shot on Sony A7R IV', '85mm lens', 'f/1.8', 'Hyper-realistic', '8k', 'Octane Render', 'Cinematic Lighting', 'Ray Tracing'.
+        - **RULE 3: NO TEXT.** The image should contain NO text.
         
-        PART 3: THE TRENDS (HASHTAGS)
-        - Generate exactly 8 highly relevant, high-volume hashtags.
-        - Mix Arabic and English tags.
-        - They must be current trends relevant to the niche.
+        ### MISSION PART 3: THE TRENDS
+        - Extract exactly 8 trending, relevant hashtags (Mix Arabic & English).
+        
+        CURRENT VISUAL ANGLE: {selected_angle}
         """
         
         user_prompt = f"""
         TARGET NICHE: {niche}
         STRATEGY MODE: {mode}
-        VISUAL ANGLE: {selected_angle}
         
-        TASK:
-        1. Write the Arabic Post (Hook + Body).
-        2. Create the Cinematic Image Prompt.
-        3. Extract 8 Trending Hashtags.
+        EXECUTE:
+        1. Arabic Post (Hook + Body).
+        2. Visual Prompt (English) -> MUST INCLUDE SPECIFIC PROPS FOR '{niche}'.
+        3. 8 Trending Hashtags.
         
         RESPONSE FORMAT (JSON ONLY):
         {{
-            "title": "Hook (Arabic)",
-            "body": "Content (Arabic)",
-            "image_prompt": "Midjourney Prompt (English) - MUST BE DETAILED & CINEMATIC",
-            "hashtags": ["#tag1", "#tag2", ...],
-            "framework": "Psychological framework",
+            "title": "Hook",
+            "body": "Content",
+            "image_prompt": "Midjourney Prompt",
+            "hashtags": ["#tag1", "#tag2"],
+            "framework": "Framework name",
             "sentiment": "Tone"
         }}
         """
@@ -111,7 +113,7 @@ class StrategicIntelligenceCore:
                     config=types.GenerateContentConfig(
                         system_instruction=sys_inst,
                         response_mime_type='application/json',
-                        temperature=0.9  # High creativity for visuals
+                        temperature=0.85
                     ),
                     contents=[user_msg]
                 )
@@ -127,7 +129,14 @@ sic_engine = StrategicIntelligenceCore()
 # --- ROUTES ---
 @app.route('/')
 def root():
-    return render_template_string("<h1>AI DOMINATOR v14.1 VISUAL MASTER ACTIVE</h1>")
+    return render_template_string("""
+    <body style="background:#000;color:#0f0;font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;">
+        <div style="text-align:center;border:1px solid #333;padding:40px;">
+            <h1>AI DOMINATOR v14.2</h1>
+            <p>VISUAL PRECISION CORE: ACTIVE</p>
+        </div>
+    </body>
+    """)
 
 @app.route('/api/tactical/execute', methods=['POST'])
 def execute():
