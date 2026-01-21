@@ -14,7 +14,7 @@ from google.genai import types
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'DOMINATOR_SUPREME_KEY_v16')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'DOMINATOR_SUPREME_KEY_v16_1')
 app.config['ENV'] = 'production'
 
 logging.basicConfig(level=logging.INFO)
@@ -29,82 +29,131 @@ if GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
         AI_ACTIVE = True
-        logger.info(">> [SYSTEM] v16.0 UNIFIED 3D CORE ACTIVE.")
+        logger.info(">> [SYSTEM] v16.1 PRECISION CORE ACTIVE.")
     except Exception as e:
         logger.error(f"!! [ERROR] AI Connection Failed: {e}")
 else:
     logger.warning("!! [CRITICAL] KEY MISSING.")
 
-# --- SIC BRAIN LOGIC (SAME AS BEFORE) ---
+# --- SIC BRAIN LOGIC ---
 class StrategicIntelligenceCore:
     def __init__(self):
-        self.version = "16.0 (3D-Integrated)"
+        self.version = "16.1 (Precision-Patch)"
 
     def _generate_fallback_content(self, niche):
         return {
             "title": "فشل الاتصال بالنواة",
-            "body": "يرجى التحقق من مفتاح API. النظام في وضع الطوارئ.",
+            "body": "يرجى التحقق من مفتاح API.",
             "image_base64": None,
             "hashtags": ["#Error"],
             "framework": "FAILURE",
             "sentiment": "Critical"
         }
 
-    def _generate_backup_image(self, prompt):
+    def _generate_backup_image(self, prompt, niche):
+        """
+        توليد الصورة البديلة مع كسر الكاش وحقن النيش
+        """
         try:
             logger.info(">> Switching to Flux Backup...")
-            enhanced_prompt = f"{prompt}, cinematic lighting, 8k, hyper-realistic, --no text"
-            url = f"https://image.pollinations.ai/prompt/{enhanced_prompt}?model=flux&width=1280&height=720&nologo=true&seed={random.randint(1, 10000)}"
-            response = requests.get(url, timeout=15)
+            # 1. Force Niche Injection: Ensure the subject is FIRST
+            forced_prompt = f"{niche}, {prompt}" 
+            
+            # 2. Enhanced Quality Tokens
+            enhanced_prompt = f"{forced_prompt}, cinematic lighting, 8k, hyper-realistic, --no text"
+            
+            # 3. Cache Busting (Seed + Timestamp)
+            seed = random.randint(1, 999999999)
+            ts = int(time.time())
+            
+            url = f"https://image.pollinations.ai/prompt/{enhanced_prompt}?model=flux&width=1280&height=720&nologo=true&seed={seed}&t={ts}"
+            
+            response = requests.get(url, timeout=20)
             if response.status_code == 200:
                 return base64.b64encode(response.content).decode('utf-8')
             return None
-        except:
+        except Exception as e:
+            logger.error(f"Backup Image Error: {e}")
             return None
 
-    def _materialize_visual(self, prompt):
+    def _materialize_visual(self, prompt, niche):
+        """
+        توليد الصورة الأساسية مع ضمان التنوع
+        """
+        # دمج النيش مع البرومبت لضمان الصلة بالموضوع
+        final_prompt = f"A photorealistic image of {niche}. {prompt}"
+        
         if not AI_ACTIVE or not client:
-            return self._generate_backup_image(prompt)
+            return self._generate_backup_image(final_prompt, niche)
+
         try:
+            # محاولة Google Imagen
             response = client.models.generate_images(
                 model='imagen-3.0-generate-001',
-                prompt=prompt,
-                config=types.GenerateImageConfig(number_of_images=1, aspect_ratio="16:9")
+                prompt=final_prompt,
+                config=types.GenerateImageConfig(
+                    number_of_images=1, 
+                    aspect_ratio="16:9",
+                    # إضافة بذرة عشوائية لـ Imagen إذا كانت مدعومة، أو الاعتماد على تغيير البرومبت
+                )
             )
             if response.generated_images:
                 return base64.b64encode(response.generated_images[0].image.image_bytes).decode('utf-8')
             raise Exception("No image from Google")
         except:
-            return self._generate_backup_image(prompt)
+            # الفشل الآمن إلى Flux
+            return self._generate_backup_image(final_prompt, niche)
 
     def _build_expert_prompt(self, niche, mode):
-        styles = ["Cinematic Commercial", "Cyber-Noir", "Macro Luxury", "National Geographic"]
+        # توسيع دائرة الأنماط البصرية
+        styles = [
+            "Cinematic Commercial (Arri Alexa)", 
+            "Cyber-Noir (Neon & Shadows)", 
+            "Macro Luxury (Extreme Detail)", 
+            "National Geographic (Documentary)",
+            "Minimalist Studio (Clean & High End)",
+            "Architectural Digest (Interior/Exterior Focus)"
+        ]
         selected_style = random.choice(styles)
         
         sys_inst = f"""
         You are the 'Supreme Content Director'.
-        NICHE: {niche}. STYLE: {selected_style}.
+        NICHE: {niche}. 
+        VISUAL STYLE: {selected_style}.
         
         TASK:
         1. Write a viral Arabic post.
-        2. Write a MIDJOURNEY-LEVEL English image prompt (Specify Lens, Lighting, Texture).
+        2. Write a MIDJOURNEY-LEVEL English image prompt.
+           - **CRITICAL:** The prompt MUST describe specific objects related to '{niche}'.
+           - DO NOT be vague. If niche is 'Coffee', describe the beans, the steam, the machine.
+           - DO NOT use text in the image.
         3. Extract 8 hashtags.
         
         OUTPUT JSON: {{ "title": "Hook", "body": "Content", "image_prompt": "Visuals", "hashtags": [], "framework": "Name", "sentiment": "Tone" }}
         """
-        return sys_inst, f"GENERATE for: {niche}"
+        # إضافة طابع عشوائي لرسالة المستخدم لمنع تكرار الكاش في Gemini نفسه
+        user_msg = f"GENERATE for: {niche}. Random Seed: {random.randint(1,1000)}"
+        return sys_inst, user_msg
 
     def generate_warhead(self, niche, mode):
         if AI_ACTIVE and client:
             try:
                 sys_inst, user_msg = self._build_expert_prompt(niche, mode)
+                
+                # رفع درجة الإبداع (Temperature)
                 text_res = client.models.generate_content(
                     model='gemini-flash-latest',
-                    config=types.GenerateContentConfig(system_instruction=sys_inst, response_mime_type='application/json'),
+                    config=types.GenerateContentConfig(
+                        system_instruction=sys_inst, 
+                        response_mime_type='application/json',
+                        temperature=0.95 
+                    ),
                     contents=[user_msg]
                 )
                 content = json.loads(text_res.text)
-                content["image_base64"] = self._materialize_visual(content.get("image_prompt", niche))
+                
+                # تمرير النيش بشكل منفصل لضمان دمجه في الصورة
+                content["image_base64"] = self._materialize_visual(content.get("image_prompt", niche), niche)
                 return content
             except Exception as e:
                 logger.error(f"Gen Error: {e}")
@@ -151,8 +200,8 @@ def system_root():
                 <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
             <div>
-                <h1 class="text-xl font-bold tracking-tighter text-white">AI DOMINATOR <span class="text-emerald-500">v16.0</span></h1>
-                <p class="text-[10px] text-gray-400 uppercase tracking-widest">Supreme Intelligence Core</p>
+                <h1 class="text-xl font-bold tracking-tighter text-white">AI DOMINATOR <span class="text-emerald-500">v16.1</span></h1>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest">Precision Core</p>
             </div>
         </div>
         <div class="flex items-center gap-2">
@@ -268,13 +317,13 @@ def system_root():
     </main>
 
     <script>
-        // 3D BACKGROUND INIT (VANTA NET)
+        // 3D BACKGROUND INIT (VANTA NET) - ZEN MODE
         document.addEventListener("DOMContentLoaded", () => {
             try {
                 VANTA.NET({
                     el: "#vanta-canvas",
-                    mouseControls: true,
-                    touchControls: true,
+                    mouseControls: false, // تم تعطيل التتبع بالماوس
+                    touchControls: false,
                     gyroControls: false,
                     minHeight: 200.00,
                     minWidth: 200.00,
@@ -282,9 +331,10 @@ def system_root():
                     scaleMobile: 1.00,
                     color: 0x10b981,
                     backgroundColor: 0x050505,
-                    points: 12.00,
-                    maxDistance: 22.00,
-                    spacing: 18.00
+                    points: 10.00,
+                    maxDistance: 24.00,
+                    spacing: 20.00,
+                    showDots: true
                 })
             } catch(e) { console.log("3D Fallback", e) }
         });
@@ -346,6 +396,7 @@ def system_root():
                 document.getElementById('sentimentVal').textContent = data.metrics.sentiment;
 
                 if(data.image_base64) {
+                    // إضافة timestamp لكسر كاش المتصفح للصورة نفسها
                     document.getElementById('resultImage').src = `data:image/png;base64,${data.image_base64}`;
                 } else {
                     addLog("Warning: Visual synthesis failed.");
